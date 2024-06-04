@@ -1,0 +1,156 @@
+---
+title: "R Markdown Intro Penguins"
+author: "Anthony Morciglio"
+date: "2024-05-31"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(warn = -1)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring:
+
+* HTML
+* PDF
+* MS Word documents. 
+For more details on using R Markdown click here [link](http://rmarkdown.rstudio.com).
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load libraries needed for computation}
+library(ggplot2)
+library(tidyverse)
+library(palmerpenguins)
+library(corrplot)
+summary(penguins)
+```
+
+## Clean the Data and Prepare for Visualization
+```{r load data, clean data}
+colnames(penguins)[7] <- "gender"
+penguins <- penguins %>% drop_na()
+df_num <- penguins %>% select(bill_depth_mm, bill_length_mm, body_mass_g, flipper_length_mm) %>% drop_na()
+
+df_num <- penguins %>%
+  select(bill_depth_mm, bill_length_mm, body_mass_g, flipper_length_mm) %>% 
+  drop_na()
+
+corr_mat <- cor(as.matrix(df_num))
+colnames(corr_mat) <- c("Bill Depth (mm)", "Bill Length (mm)", "Body Mass (g)", "Flipper Length (mm)")
+rownames(corr_mat) <- colnames(corr_mat)
+
+df_species <- penguins %>% 
+  group_by(species) %>% 
+  drop_na() %>% # drop nulls before summarizing
+  summarize(avg_bill_length_mm = mean(bill_length_mm), avg_bill_depth_mm = mean(bill_depth_mm),avg_flipper_length_mm = mean(flipper_length_mm), avg_body_mass_g = mean(body_mass_g))
+
+tail(df_species)
+
+# -- island -- #
+df_island <- penguins %>% 
+  group_by(island) %>% 
+  drop_na() %>% # drop nulls before summarizing
+  summarize(avg_bill_length_mm = mean(bill_length_mm), avg_bill_depth_mm = mean(bill_depth_mm), avg_flipper_length_mm = mean(flipper_length_mm), avg_body_mass_g = mean(body_mass_g))
+
+tail(df_island)
+
+# -- gender -- #
+df_gender <- penguins %>% 
+  group_by(gender) %>% 
+  drop_na() %>% # drop nulls before summarizing
+  summarize(avg_bill_length_mm = mean(bill_length_mm), avg_bill_depth_mm = mean(bill_depth_mm), avg_flipper_length_mm = mean(flipper_length_mm), avg_body_mass_g = mean(body_mass_g))
+
+tail(df_gender)
+```
+
+## Including Plots
+
+You can also embed plots, 
+Plot over here: ![Plot this way](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOvjWCaWcALhHSaYqz-fHHbfUrG70h_0hMGg&s)
+
+For example:
+
+```{r flipper length and body mass, echo=FALSE}
+options(warn = -1)
+
+corrplot(corr_mat, tl.col = 'black') + theme_linedraw()
+
+# 1: flipper length vs body mass
+ggplot(data = penguins, aes(flipper_length_mm, body_mass_g)) + # plot labels
+  geom_point(mapping = aes(x = flipper_length_mm, y = body_mass_g)) + # geom - fill points
+  geom_smooth(method = lm, se = FALSE) + # geom - linear smoothing and regression
+  labs(x = "Flipper Length (mm)", y = "Body Mass (g)", title = "Scatter Plot: Flipper Length vs Body Mass") + 
+  annotate("text", label = "r = 0.871 (Correlation Coefficient)", x = 185, y = 5750) +
+  theme_linedraw()
+
+# -- Demonstrate all modifications in a Bubble Chart -- #
+ggplot(data=penguins, aes(x = flipper_length_mm, y = body_mass_g, color = species, alpha = bill_length_mm)) +
+  geom_point(data=penguins, aes(x = penguins$flipper_length_mm, y = penguins$body_mass_g, size = penguins$bill_depth_mm)) +
+  #geom_smooth(aes(x = penguins$flipper_length_mm, y = penguins$body_mass_g)) +
+  labs(x = "Flipper Length (mm)", y = "Body Mass (g)", title = "Scatter Plot: Species and Features", color = "Species", alpha = "Bill Length (mm)", size = "Bill Depth (mm)") + theme_linedraw()
+
+# Facet Grid displays multiple windows #
+ggplot(data=penguins, aes(x = flipper_length_mm, y = body_mass_g, color = gender, alpha = 0.5)) +
+  geom_point(data=penguins, aes(x = penguins$flipper_length_mm, y = penguins$body_mass_g)) +
+  #geom_smooth(aes(x = penguins$flipper_length_mm, y = penguins$body_mass_g)) +
+  facet_grid(island ~ species) +
+  labs(x = "Flipper Length (mm)", y = "Body Mass (g)", title = "Scatter Plot: Species per Island", color = "Gender") + theme_linedraw()
+
+# 2: bill length vs body mass
+ggplot(data = penguins, aes(bill_depth_mm, body_mass_g)) +
+  geom_point(mapping = aes(x = bill_depth_mm, y = body_mass_g)) +
+  geom_smooth(method = lm, se = FALSE) + facet_wrap(penguins$species) +
+  labs(x = "Bill Depth (mm)", y = "Body Mass (g)", title = "Scatter Plot: Bill Depth vs Body Mass") + theme_linedraw()
+
+# 3: bill depth vs bill length
+ggplot(data = penguins, aes(bill_depth_mm, bill_length_mm)) +
+  geom_point(mapping = aes(x = bill_depth_mm, y = bill_length_mm)) +
+  geom_smooth(method = lm, se = FALSE) + facet_wrap(penguins$species) +
+  labs(x = "Bill Depth (mm)", y = "Bill Length (mm)", title = "Scatter Plot: Bill Depth vs Bill Length") + theme_linedraw()
+
+# 4: bill depth vs body mass
+ggplot(data = penguins, aes(bill_depth_mm, body_mass_g, color = species)) +
+  geom_point(mapping = aes(x = bill_depth_mm, y = body_mass_g)) +
+  geom_smooth(method = lm, se = FALSE) + facet_wrap(penguins$species) + 
+  labs(x = "Bill Depth (mm)", y = "Body Mass (g)", title = "Scatter Plot: Bill Depth vs Body Mass", color = "Species") + theme_linedraw()
+
+# 5: bar chart of species
+ggplot(data=penguins) +
+  geom_bar(data=penguins, aes(penguins$species, fill = penguins$species)) + 
+  labs(x = "Species", y = "Frequency", title = "Bar Chart", fill = "Species") + theme_linedraw()
+
+# 6: Boxplot - species vs flipper length
+ggplot(data=penguins, aes(x = species, y = flipper_length_mm, fill = species)) +
+  geom_boxplot(data=penguins, aes(penguins$species, penguins$flipper_length_mm)) + 
+  labs(x = "Species", y = "Flipper Length (mm)", title = "Box Plot: Species vs Flipper Length", fill = "Species") + theme_linedraw()
+
+# 7: Boxplot - species vs bill length
+ggplot(data=penguins, aes(x = species, y = bill_length_mm, fill = species)) +
+  geom_boxplot(data=penguins, aes(penguins$species, penguins$bill_length_mm)) + 
+  labs(x = "Species", y = "Bill Length (mm)", title = "Box Plot: Species vs Bill Length", fill = "Species") + theme_linedraw()
+
+# 8: Boxplot - species vs bill depth
+ggplot(data=penguins, aes(x = species, y = bill_depth_mm, fill = species)) +
+  geom_boxplot(data=penguins, aes(penguins$species, penguins$bill_depth_mm)) + 
+  labs(x = "Species", y = "Bill Depth (mm)", title = "Box Plot: Species vs Bill Depth", fill = "Species") + theme_linedraw()
+
+# 9: Boxplot - species vs body mass
+ggplot(data=penguins, aes(x = species, y = body_mass_g, fill = species)) +
+  geom_boxplot(data=penguins, aes(penguins$species, penguins$body_mass_g)) + 
+  labs(x = "Species", y = "Body Mass (g)", title = "Box Plot: Species vs Body Mass", fill = "Species") + theme_linedraw()
+
+# - Use gam smoothing for data with large number of points - more time consuming
+ggplot(data=penguins, aes(x = flipper_length_mm, y = body_mass_g)) + 
+  geom_point(data=penguins, aes(x = penguins$flipper_length_mm, y = penguins$body_mass_g)) +
+  #facet_wrap(penguins$species) +
+  geom_smooth(method = 'gam', aes(x = penguins$flipper_length_mm, y = penguins$body_mass_g)) +
+  labs(x = "Flipper Length (mm)", y = "Body Mass (g)", title = "Scatter Plot w/ Gam Smoothing") + theme_linedraw()
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
